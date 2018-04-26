@@ -27,7 +27,7 @@
 #include <TFT.h>
 #include <Bounce2.h>
 
-#define SD_SS_PIN 4
+#define SD_SS_PIN 10 // Changed from 4 because the tutorial said so /shrug -- RK
 #define STATUS_PIN 13
 #define CS 10
 #define DC 9
