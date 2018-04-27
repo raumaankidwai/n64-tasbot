@@ -36,7 +36,7 @@
 #define NEXT 2
 #define SELECT 3
 
-#define SERIAL_BAUD_RATE 115200
+#define SERIAL_BAUD_RATE 9600
 
 #define N64_PIN 8
 #define N64_HIGH DDRB &= ~0x01
