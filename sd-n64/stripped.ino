@@ -184,6 +184,8 @@ void logFrame()
   //Serial.print(dat[2], HEX);
   //Serial.write(" ");
   //Serial.println(dat[3], HEX);
+  Serial.write("Currently on frame ");
+  Serial.println(curFrame);
 }
 
 void mainLoop()
