@@ -31,10 +31,13 @@
 #include <SPI.h>
 #include <SD.h>
 
-#define SD_SS_PIN 5			// This is the Chip Select (CS) pin, which is pin 5 on the Feather 32u4 with the TFT FeatherWing
-#define STATUS_PIN 13			// This is the LED, which is built-in at pin 13 on the Feather
+// This is the Chip Select (CS) pin, which is pin 5 on the Feather 32u4 with the 3.5" TFT FeatherWing
+#define SD_SS_PIN 5
+// This is the LED, which is built-in at pin 13 on the Feather
+#define STATUS_PIN 13
 
-#define SERIAL_BAUD_RATE 9600		// If you don't know what this means why are you here
+// If you don't know what this means why are you here
+#define SERIAL_BAUD_RATE 9600
 
 #define N64_PIN 8
 #define N64_HIGH DDRB &= ~0x01
@@ -46,7 +49,8 @@
 
 #define INPUT_BUFFER_SIZE 16
 
-#define INPUT_BUFFER_UPDATE_TIMEOUT 10 // 10 ms
+// 10 ms
+#define INPUT_BUFFER_UPDATE_TIMEOUT 10
 
 
 /* INITIALIZATION */
@@ -83,7 +87,8 @@ static bool selected = false;
 // Frame counters
 static unsigned long numFrames = 0, curFrame = 0;
 
-// These are reused for counting files when listing the directory to save space. Only one interpretation is used at any given time
+// These are reused for counting files when listing the directory to save space
+// Only one interpretation is used at any given time
 #define dirPos curFrame
 #define numFiles numFrames
 
@@ -525,4 +530,121 @@ static void updateInputBuffer () {
 			}
 		}
 	}
+}
+
+// Sends data to the N64
+static void n64_send (unsigned char *buffer, char length, bool wide_stop) {
+	// monkaS
+	asm volatile ("; Starting N64 Send Routine");
+	
+	// Number of bits to go
+	char bits;
+	
+	// Insanely precise, don't mess with this
+	asm volatile (";Starting outer for loop");
+	
+	outer_loop: {
+		asm volatile ("; Starting inner for loop");
+		bits = 8;
+		
+		inner_loop: {
+			// Starting to send a bit
+			asm volatile ("; Setting line to low");
+			N64_LOW;
+			
+			asm volatile ("; Branching");
+			
+			if (*buffer >> 7) {
+				asm volatile ("; Bit is a 1");
+				
+				// For a 1 bit, stay low for 1 microsecond (us) then go high for 3 us
+				// This is the 1 us
+				asm volatile ("nop\nnop\nnop\nnop\nnop\n");
+				
+				asm volatile ("; Setting line to high");
+				N64_HIGH;
+				
+				// This is actually 2 us, we add on the common 1 us after
+				asm volatile (
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+				);
+                              );
+			} else {
+				asm volatile ("; Bit is a 0");
+				
+				// For a 0 bit, stay low for 3 us then go high for 1 us
+				asm volatile (
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\n"
+				);
+				
+				asm volatile ("; Setting line to high");
+				N64_HIGH;
+				
+				asm volatile ("; End of conditional branch, need to wait 1 us more before next bit");
+			}
+			
+			// The line is always high at this point, where we wait 1 us
+			
+			asm volatile ("; Finishing inner loop body");
+			
+			// Decrement counter for leftover bitfs
+			bits --;
+			
+			// If we still have some more to go, wait 1 us on high
+			if (bits != 0) {
+				asm volatile (
+					"nop\nnop\nnop\nnop\nnop\n"
+					"nop\nnop\nnop\nnop\n"
+				);
+				
+				asm volatile ("; Next byte");
+				*buffer <<= 1;
+				
+				goto inner_loop;
+			}
+		}
+		
+		asm volatile ("; Continuing outer loop");
+		
+		// All this takes exactly 1 us so no nops are needed
+		
+		length --;
+		
+		if (length != 0) {
+			buffer ++;
+			goto outer_loop;
+		}
+	}
+	
+	// Send a stop signal
+	asm volatile ("nop\nnop\nnop\nnop\n");
+	N64_LOW;
+	
+	asm volatile (
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\nnop\nnop\nnop\nnop\n"
+		"nop\n"
+	);
+	
+	if (wide_stop) {
+		asm volatile (
+			";another 1 us for extra wide stop bit\n"
+			"nop\nnop\nnop\nnop\nnop\n"
+			"nop\nnop\nnop\nnop\nnop\n"
+			"nop\nnop\nnop\nnop\n"
+		);
+	}
+	
+	N64_HIGH;
 }
