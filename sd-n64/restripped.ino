@@ -408,3 +408,126 @@ static bool openM64 () {
 	
 	return true;
 }
+
+static void updateInputBuffer () {
+	// Read (as in red) bytes from the M64
+	int readBytes = 0;
+	
+	// First check
+	if (bufferPos == -1) {
+		// Initially, both buffers are not in use
+		bufferPos = 0;
+		bufferAInUse = false;
+		bufferBInUse = false;
+	} else {
+		// Increment index into buffer
+		bufferPos ++;
+		
+		// Wrap it around so we can repeat inputs
+		if (bufferPos >= INPUT_BUFFER_SIZE) {
+			bufferPos = 0;
+		}
+		
+		// Check which of bufferA and bufferB is in use
+		// They each make up half the input buffer
+		if (bufferPos < INPUT_BUFFER_SIZE / 2) {
+			// It's bufferA
+			
+			// Check if it's loaded
+			if (!bufferALoaded)
+				Serial.println(F("No new input was loaded in buffer A.")); // TFT red on black
+			
+			if (!bufferAInUse)
+				bufferBLoaded = false;
+			
+			bufferAInUse = true;
+			bufferBInUse = false;
+		} else {
+			// It's bufferB
+			
+			// Check if it's loaded
+			if (!bufferBLoaded)
+				Serial.println(F("No new input was loaded in buffer B.")); // TFT red on black
+			
+			if (!bufferBInUse)
+				bufferALoaded = false;
+			
+			bufferAInUse = false;
+			bufferBInUse = true;
+		}
+	}
+	
+	// If we're at the end of the buffer, exit
+	// bufferEndPos is the position in the buffer of the end of the file
+	if (bufferEndPos != -1) {
+		if (!bufferOneMore) {
+			Serial.println(F("Finished playing TAS.")); // TFT green on black
+			finished = true;
+		} else if (bufferPos == bufferEndPos)
+			bufferOneMore = false;
+		
+		return;
+	}
+	
+	// Check if the file is done
+	if (!m64File.available()) {
+		// Set end position
+		if (!bufferAInUse) {
+			// End of buffer B is the end of the whole buffer
+			bufferEndPos = INPUT_BUFFER_SIZE - 1;
+		} else if (!bufferBInUse) {
+			// End of buffer A is in the middle
+			bufferEndPos = INPUT_BUFFER_SIZE / 2 - 1;
+		} else {
+			// uwotm8
+			Serial.println(F("Da fuq")); // TFT red on black
+			
+			// End immediately
+			bufferEndPos = 0;
+			finished = true;
+		}
+		
+		// Close file
+		m64File.close();
+		return;
+	}
+	
+	// Load bytes into buffer A/B if buffer A/B isn't in use
+	// Whoever wrote this is smart
+	if (!bufferALoaded && !bufferAInUse) {
+		// Read bytes
+		// readBytes is the length of the read data
+		readBytes = m64File.read(inputBuffer, INPUT_BUFFER_SIZE * 2);
+		
+		// If there is no read data, it failed
+		if (readBytes == 0) {
+			Serial.println(F("Failed to read inputs. (Is SPI management bad?)")); // TFT red on black
+		} else {
+			bufferALoaded = true;
+			
+			// Check if the read data isn't the normal size, which means it must be the end of the file
+			if (readBytes != INPUT_BUFFER_SIZE * 2) {
+				// Set end position
+				bufferEndPos = readBytes / 4 - 1;
+				m64File.close();
+			}
+		}
+	} else if (!bufferBLoaded && !bufferBInUse) {
+		// Read bytes
+		readBytes = m64File.read(inputBuffer + (INPUT_BUFFER_SIZE / 2), INPUT_BUFFER_SIZE * 2);
+		
+		// If there is no read data, it failed
+		if (readBytes == 0) {
+			Serial.println(F("Failed to read inputs. (Recoverable, is SPI management bad?)")); // TFT red on black
+		} else {
+			bufferBLoaded = true;
+			
+			// Check if the read data isn't the normal size, which means it must be the end of the file
+			if (readBytes != INPUT_BUFFER_SIZE * 2) {
+				// Set end position
+				bufferEndPos = INPUT_BUFFER_SIZE / 2 + readBytes / 4 - 1;
+				m64File.close();
+			}
+		}
+	}
+}
