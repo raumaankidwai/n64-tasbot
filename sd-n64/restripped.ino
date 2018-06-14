@@ -19,12 +19,8 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
- 
- // Credit goes to rcombs for making this code into what it is, I just re-commented and changed the style of most of it
 
-
-
-// TODO: Figure out which includes and defines are needed, most probably aren't
+// Credit goes to rcombs for making the real nitty gritty stuff, I just programmed in the higher level things
 
 
 /* PREPROCESSOR */
@@ -34,7 +30,6 @@
 #include "crc_table.h"
 #include <SPI.h>
 #include <SD.h>
-#include <Bounce2.h>
 
 #define SD_SS_PIN 5			// This is the Chip Select (CS) pin, which is pin 5 on the Feather 32u4 with the TFT FeatherWing
 #define STATUS_PIN 13			// This is the LED, which is built-in at pin 13 on the Feather
