@@ -39,7 +39,7 @@
 // If you don't know what this means why are you here
 #define SERIAL_BAUD_RATE 9600
 
-#define N64_PIN 8
+#define N64_PIN A5
 #define N64_HIGH DDRB &= ~0x01
 #define N64_LOW DDRB |= 0x01
 #define N64_QUERY (PINB & 0x01)
