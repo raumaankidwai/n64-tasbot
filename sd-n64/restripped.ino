@@ -543,7 +543,7 @@ static void n64_send (unsigned char *buffer, char length, bool wide_stop) {
 	char bits;
 	
 	// Insanely precise, don't mess with this
-	asm volatile (";Starting outer for loop");
+	asm volatile ("; Starting outer for loop");
 	
 	outer_loop: {
 		asm volatile ("; Starting inner for loop");
@@ -575,7 +575,6 @@ static void n64_send (unsigned char *buffer, char length, bool wide_stop) {
 					"nop\nnop\nnop\nnop\nnop\n"
 					"nop\nnop\nnop\nnop\nnop\n"
 				);
-                              );
 			} else {
 				asm volatile ("; Bit is a 0");
 				
