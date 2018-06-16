@@ -117,7 +117,7 @@ static void getM64Name () {
 	File dir = SD.open(F("/"));
 	int pos = 0;
 	
-	for (m64File = dir.openfFile(); m64File; m64File = dir.openNextFile()) {
+	for (m64File = dir.openNextFile(); m64File; m64File = dir.openNextFile()) {
 		const char *name = m64File.name();
 		
 		if (!m64File.isDirectory() && extMatches(name) && name[0] != "_")
