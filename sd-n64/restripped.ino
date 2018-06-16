@@ -137,7 +137,7 @@ void logFrame () {
 
 void setup () {
 	Serial.begin(SERIAL_BAUD_RATE);
-	while (!Serial); // Wait for Serial to connect
+	while (!Serial.available()); // Wait to receive input
 	
 	Serial.println(F("Starting...")); // TFT too (white on black)
 	
